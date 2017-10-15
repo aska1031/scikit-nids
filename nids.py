@@ -21,6 +21,7 @@ print(50 * '#')
 print("Step 1: Get datasets")
 print(50 * '#')
 
+# get dataset from http://kdd.ics.uci.edu/databases/kddcup99/kddcup.data_10_percent.gz
 NET_DATA_PATH = os.path.join("../datasets")
 
 
@@ -59,7 +60,6 @@ def plot_features(X):
     # plt.scatter(normal_data.values[:200, 0], normal_data.values[:200, 1],            #dataframe
     #             color='blue', marker='x', label='normal')
 
-    # 改变 index 来选择不同的 feature, 同时只能选择两组 feature来对比
     plt.scatter(attack_data[:100, 0], attack_data[:100, 1],  # numpy
                 color='red', marker='o', label='attack traffics')
     plt.scatter(normal_data[:100, 0], normal_data[:100, 1],  # numpy
@@ -74,14 +74,11 @@ def plot_features(X):
 
 data = load_datasets()
 
-# 首尾十条
 # print(data.head())
 # print(data.tail())
 
-# 数据信息
 # print(data.info())
 
-# 统计label下不同攻击类型的个数
 # print(data['label'].value_counts())
 
 
