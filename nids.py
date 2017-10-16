@@ -101,15 +101,18 @@ def plot_decision_regions(X, y, classifier, resolution=0.02):
 
 
 data = load_datasets()
-data = data.iloc[:10000,:]
+data = data.iloc[:25000, :]
+
+# select top 2 features: srv_count, num_compromised
+# data = datasets[['srv_count', 'num_compromised', 'label']]
+
 
 # print(data.head())
 # print(data.tail())
 
 # print(data.info())
 
-# print(data['label'].value_counts())
-
+print(data['label'].value_counts())
 
 ##############################################################
 
@@ -122,6 +125,7 @@ print("Step 2.1: Binarization for label")
 print(50 * '#')
 
 # get label, last column, convert it to binary classification label
+ori_labels = data.iloc[:,-1].values
 data.iloc[:, -1] = np.where(data.iloc[:, -1] == 'normal.', -1, 1)
 labels = data.iloc[:, -1].values
 # labels = last_column.copy()
@@ -176,14 +180,30 @@ print(50 * '#')
 lr = LogisticRegression(C=1.0, penalty='l1', random_state=0)
 lr.fit(train_data, train_labels)
 
+# plot_decision_regions(train_data, train_labels, classifier=lr)
+# plt.xlabel('Feature 1')
+# plt.ylabel('Feature 2')
+# plt.legend(loc='upper left')
+#
+# plt.tight_layout()
+# plt.show()
+
 print(50 * '#')
 print("Step 3.2: Training with linear SVC")
 print(50 * '#')
 
-svm = SVC(kernel='rbf', random_state=0, gamma=0.10, C=10.0)
+svm = SVC(kernel='rbf', random_state=0, gamma=0.10, C=100.0)
 # svm = SVC(kernel='linear', C=1.0, random_state=0)
 svm.fit(train_data, train_labels)
 
+#
+# plot_decision_regions(train_data, train_labels, classifier=svm)
+# plt.xlabel('Feature 1')
+# plt.ylabel('Feature 2')
+# plt.legend(loc='upper left')
+#
+# plt.tight_layout()
+# plt.show()
 
 print(50 * '#')
 print("Step 3.1: Feature selection")
@@ -207,23 +227,23 @@ forest = RandomForestClassifier(n_estimators=10,
 forest.fit(train_data, train_labels)
 importances = forest.feature_importances_
 indices = np.argsort(importances)[::-1]
-#
-# for f in range(train_data.shape[1]):
-#     print("%2d) %-*s %f" % (f + 1, 30,
-#                             names[indices[f]],
-#                             importances[indices[f]]))
-#
-# plt.title('Feature Importances')
-# plt.bar(range(train_data.shape[1]),
-#         importances[indices],
-#         color='lightblue',
-#         align='center')
-#
-# plt.xticks(range(train_data.shape[1]),
-#            names[indices], rotation=90)
-# plt.xlim([-1, train_data.shape[1]])
-# plt.tight_layout()
-# plt.show()
+
+for f in range(train_data.shape[1]):
+    print("%2d) %-*s %f" % (f + 1, 30,
+                            names[indices[f]],
+                            importances[indices[f]]))
+
+plt.title('Feature Importances')
+plt.bar(range(train_data.shape[1]),
+        importances[indices],
+        color='lightblue',
+        align='center')
+
+plt.xticks(range(train_data.shape[1]),
+           names[indices], rotation=90)
+plt.xlim([-1, train_data.shape[1]])
+plt.tight_layout()
+plt.show()
 
 print(50 * '#')
 print("Step 4: Prediction")
@@ -243,24 +263,36 @@ print(50 * '#')
 print("Step 5.1: Evaluation for LogisticRegression")
 print(50 * '#')
 
-# print('Accuracy for LogisticRegression: %.2f' % accuracy_score(test_labels, pred_labels))
-# print(classification_report(test_labels, pred_labels))
+print('Accuracy for LogisticRegression: %.2f' % accuracy_score(test_labels, pred_labels))
+print(classification_report(test_labels, pred_labels))
 print(confusion_matrix(test_labels, pred_labels))
 
 print(50 * '#')
 print("Step 5.2: Evaluation for RandomForest")
 print(50 * '#')
 
-# print('Accuracy for Random Forest: %.2f' % accuracy_score(test_labels, pred_labels_rf))
-# print(classification_report(test_labels, pred_labels_rf))
-print(confusion_matrix(test_labels, pred_labels_rf))
+print('Accuracy for Random Forest: %.2f' % accuracy_score(test_labels, pred_labels_rf))
+print(classification_report(test_labels, pred_labels_rf))
+confmat = confusion_matrix(test_labels, pred_labels_rf)
+print(confmat)
+
+fig, ax = plt.subplots(figsize=(2.5, 2.5))
+ax.matshow(confmat, cmap=plt.cm.Blues, alpha=0.3)
+for i in range(confmat.shape[0]):
+    for j in range(confmat.shape[1]):
+        ax.text(x=j, y=i, s=confmat[i, j], va='center', ha='center')
+
+plt.xlabel('predicted label')
+plt.ylabel('true label')
+
+plt.show()
 
 print(50 * '#')
 print("Step 5.3: Evaluation for SVC")
 print(50 * '#')
 
-# print('Accuracy for Random Forest: %.2f' % accuracy_score(test_labels, pred_labels_rf))
-# print(classification_report(test_labels, pred_labels_rf))
+print('Accuracy for Random Forest: %.2f' % accuracy_score(test_labels, pred_labels_rf))
+print(classification_report(test_labels, pred_labels_rf))
 print(confusion_matrix(test_labels, pred_labels_svc))
 
 print(50 * '#')
@@ -300,7 +332,6 @@ forest = RandomForestClassifier(n_estimators=10,
                                 n_jobs=-1)
 forest.fit(pca_train_data, train_labels)
 
-
 plot_decision_regions(pca_train_data, train_labels, classifier=forest)
 plt.xlabel('Feature 1')
 plt.ylabel('Feature 2')
@@ -309,12 +340,11 @@ plt.legend(loc='upper left')
 plt.tight_layout()
 plt.show()
 
-
 print(50 * '#')
 print("Step 7.3: Re-training: SVC")
 print(50 * '#')
 
-svm = SVC(kernel='rbf', random_state=0, gamma=0.10, C=10.0)
+svm = SVC(kernel='rbf', random_state=1, gamma=0.10, C=0.1)
 svm.fit(pca_train_data, train_labels)
 
 plot_decision_regions(pca_train_data, train_labels, classifier=svm)
@@ -325,7 +355,6 @@ plt.legend(loc='upper left')
 plt.tight_layout()
 plt.show()
 
-
 print(50 * '#')
 print("Step 8: Re-Prediction")
 print(50 * '#')
@@ -335,7 +364,6 @@ print("Step 8.1: Re-Prediction: LR")
 print(50 * '#')
 
 pca_pred_labels = lr.predict(pca_test_data)
-
 
 print(50 * '#')
 print("Step 8.2: Re-Prediction: RF")
@@ -356,24 +384,24 @@ print(50 * '#')
 print(50 * '#')
 print("Step 9.1: Re-Evaluation for LR")
 print(50 * '#')
-# print('Accuracy for LR: %.2f' % accuracy_score(test_labels, pca_pred_labels))
-# print(classification_report(test_labels, pca_pred_labels))
+print('Accuracy for LR: %.2f' % accuracy_score(test_labels, pca_pred_labels))
+print(classification_report(test_labels, pca_pred_labels))
 print(confusion_matrix(test_labels, pca_pred_labels))
 
 print(50 * '#')
 print("Step 9.2: Re-Evaluation for RF")
 print(50 * '#')
 
-# print('Accuracy for RF: %.2f' % accuracy_score(test_labels, pca_pred_labels_rf))
-# print(classification_report(test_labels, pca_pred_labels_rf))
+print('Accuracy for RF: %.2f' % accuracy_score(test_labels, pca_pred_labels_rf))
+print(classification_report(test_labels, pca_pred_labels_rf))
 print(confusion_matrix(test_labels, pca_pred_labels_rf))
 
 print(50 * '#')
 print("Step 9.3: Re-Evaluation for SVC")
 print(50 * '#')
 
-# print('Accuracy for RF: %.2f' % accuracy_score(test_labels, pca_pred_labels_svc))
-# print(classification_report(test_labels, pca_pred_labels_svc))
+print('Accuracy for RF: %.2f' % accuracy_score(test_labels, pca_pred_labels_svc))
+print(classification_report(test_labels, pca_pred_labels_svc))
 print(confusion_matrix(test_labels, pca_pred_labels_svc))
 
 print(50 * '#')
@@ -404,7 +432,15 @@ print(50 * '#')
 
 # plot_features(pca_train_data)
 
-k = 2
+k = 20
 km = KMeans(n_clusters=k)
-km.fit(pca_train_data)
+km.fit(train_data)
 print(pd.Series(km.labels_).value_counts())
+
+label_names = list(map(
+    lambda x: pd.Series([ori_labels[i] for i in range(len(km.labels_)) if km.labels_[i] == x]),
+    range(k)))
+
+for i in range(k):
+    print("Cluster {} labels:".format(i))
+    print(label_names[i].value_counts())
