@@ -2,10 +2,12 @@ import pandas as pd
 import numpy as np
 import os
 import matplotlib.pyplot as plt
+from matplotlib.colors import ListedColormap
 from sklearn.preprocessing import LabelEncoder
 from sklearn.preprocessing import StandardScaler
 from sklearn.preprocessing import Normalizer
 from sklearn.model_selection import train_test_split
+from sklearn.svm import SVC
 # from sklearn.svm import SVC
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score
@@ -60,9 +62,9 @@ def plot_features(X):
     # plt.scatter(normal_data.values[:200, 0], normal_data.values[:200, 1],            #dataframe
     #             color='blue', marker='x', label='normal')
 
-    plt.scatter(attack_data[:100, 0], attack_data[:100, 1],  # numpy
+    plt.scatter(attack_data[:, 0], attack_data[:, 1],  # numpy
                 color='red', marker='o', label='attack traffics')
-    plt.scatter(normal_data[:100, 0], normal_data[:100, 1],  # numpy
+    plt.scatter(normal_data[:, 0], normal_data[:, 1],  # numpy
                 color='blue', marker='x', label='normal traffics')
 
     plt.xlabel('feature 1')
@@ -72,7 +74,34 @@ def plot_features(X):
     plt.show()
 
 
+def plot_decision_regions(X, y, classifier, resolution=0.02):
+    # setup marker generator and color map
+    markers = ('s', 'x', 'o', '^', 'v')
+    colors = ('red', 'blue', 'lightgreen', 'gray', 'cyan')
+    cmap = ListedColormap(colors[:len(np.unique(y))])
+
+    # plot the decision surface
+    x1_min, x1_max = X[:, 0].min() - 1, X[:, 0].max() + 1
+    x2_min, x2_max = X[:, 1].min() - 1, X[:, 1].max() + 1
+    xx1, xx2 = np.meshgrid(np.arange(x1_min, x1_max, resolution),
+                           np.arange(x2_min, x2_max, resolution))
+    Z = classifier.predict(np.array([xx1.ravel(), xx2.ravel()]).T)
+    Z = Z.reshape(xx1.shape)
+    plt.contourf(xx1, xx2, Z, alpha=0.4, cmap=cmap)
+    plt.xlim(xx1.min(), xx1.max())
+    plt.ylim(xx2.min(), xx2.max())
+
+    # plot class samples
+    for idx, cl in enumerate(np.unique(y)):
+        plt.scatter(x=X[y == cl, 0], y=X[y == cl, 1],
+                    alpha=0.8, c=cmap(idx),
+                    edgecolor='black',
+                    marker=markers[idx],
+                    label=cl)
+
+
 data = load_datasets()
+data = data.iloc[:10000,:]
 
 # print(data.head())
 # print(data.tail())
@@ -140,8 +169,21 @@ print(50 * '#')
 print("Step 3: Training")
 print(50 * '#')
 
-lr = LogisticRegression(C=0.1, penalty='l1', random_state=0)
+print(50 * '#')
+print("Step 3.1: Training with LR")
+print(50 * '#')
+
+lr = LogisticRegression(C=1.0, penalty='l1', random_state=0)
 lr.fit(train_data, train_labels)
+
+print(50 * '#')
+print("Step 3.2: Training with linear SVC")
+print(50 * '#')
+
+svm = SVC(kernel='rbf', random_state=0, gamma=0.10, C=10.0)
+# svm = SVC(kernel='linear', C=1.0, random_state=0)
+svm.fit(train_data, train_labels)
+
 
 print(50 * '#')
 print("Step 3.1: Feature selection")
@@ -191,13 +233,14 @@ pred_labels = lr.predict(test_data)
 # print(pred_labels)
 
 pred_labels_rf = forest.predict(test_data)
+pred_labels_svc = svm.predict(test_data)
 
 print(50 * '#')
 print("Step 5: Evaluation")
 print(50 * '#')
 
 print(50 * '#')
-print("Step 5: Evaluation for LogisticRegression")
+print("Step 5.1: Evaluation for LogisticRegression")
 print(50 * '#')
 
 # print('Accuracy for LogisticRegression: %.2f' % accuracy_score(test_labels, pred_labels))
@@ -205,12 +248,20 @@ print(50 * '#')
 print(confusion_matrix(test_labels, pred_labels))
 
 print(50 * '#')
-print("Step 5: Evaluation for RandomForest")
+print("Step 5.2: Evaluation for RandomForest")
 print(50 * '#')
 
 # print('Accuracy for Random Forest: %.2f' % accuracy_score(test_labels, pred_labels_rf))
 # print(classification_report(test_labels, pred_labels_rf))
 print(confusion_matrix(test_labels, pred_labels_rf))
+
+print(50 * '#')
+print("Step 5.3: Evaluation for SVC")
+print(50 * '#')
+
+# print('Accuracy for Random Forest: %.2f' % accuracy_score(test_labels, pred_labels_rf))
+# print(classification_report(test_labels, pred_labels_rf))
+print(confusion_matrix(test_labels, pred_labels_svc))
 
 print(50 * '#')
 print("Step 6: Dimensional reduction")
@@ -229,17 +280,51 @@ print(50 * '#')
 print("Step 7.1: Re-training: LR")
 print(50 * '#')
 
-lr = LogisticRegression(C=1000.0, random_state=0)
+lr = LogisticRegression(C=0.1, random_state=1)
 lr.fit(pca_train_data, train_labels)
+
+plot_decision_regions(pca_train_data, train_labels, classifier=lr)
+plt.xlabel('Feature 1')
+plt.ylabel('Feature 2')
+plt.legend(loc='upper left')
+
+plt.tight_layout()
+plt.show()
 
 print(50 * '#')
 print("Step 7.2: Re-training: RF")
 print(50 * '#')
 
 forest = RandomForestClassifier(n_estimators=10,
-                                random_state=0,
+                                random_state=1,
                                 n_jobs=-1)
 forest.fit(pca_train_data, train_labels)
+
+
+plot_decision_regions(pca_train_data, train_labels, classifier=forest)
+plt.xlabel('Feature 1')
+plt.ylabel('Feature 2')
+plt.legend(loc='upper left')
+
+plt.tight_layout()
+plt.show()
+
+
+print(50 * '#')
+print("Step 7.3: Re-training: SVC")
+print(50 * '#')
+
+svm = SVC(kernel='rbf', random_state=0, gamma=0.10, C=10.0)
+svm.fit(pca_train_data, train_labels)
+
+plot_decision_regions(pca_train_data, train_labels, classifier=svm)
+plt.xlabel('Feature 1')
+plt.ylabel('Feature 2')
+plt.legend(loc='upper left')
+
+plt.tight_layout()
+plt.show()
+
 
 print(50 * '#')
 print("Step 8: Re-Prediction")
@@ -251,11 +336,18 @@ print(50 * '#')
 
 pca_pred_labels = lr.predict(pca_test_data)
 
+
 print(50 * '#')
-print("Step 8.1: Re-Prediction: RF")
+print("Step 8.2: Re-Prediction: RF")
 print(50 * '#')
 
 pca_pred_labels_rf = forest.predict(pca_test_data)
+
+print(50 * '#')
+print("Step 8.3: Re-Prediction: SVC")
+print(50 * '#')
+
+pca_pred_labels_svc = svm.predict(pca_test_data)
 
 print(50 * '#')
 print("Step 9: Re-Evaluation")
@@ -275,6 +367,14 @@ print(50 * '#')
 # print('Accuracy for RF: %.2f' % accuracy_score(test_labels, pca_pred_labels_rf))
 # print(classification_report(test_labels, pca_pred_labels_rf))
 print(confusion_matrix(test_labels, pca_pred_labels_rf))
+
+print(50 * '#')
+print("Step 9.3: Re-Evaluation for SVC")
+print(50 * '#')
+
+# print('Accuracy for RF: %.2f' % accuracy_score(test_labels, pca_pred_labels_svc))
+# print(classification_report(test_labels, pca_pred_labels_svc))
+print(confusion_matrix(test_labels, pca_pred_labels_svc))
 
 print(50 * '#')
 print("Step 10: Eigendecomposition")
@@ -305,6 +405,6 @@ print(50 * '#')
 # plot_features(pca_train_data)
 
 k = 2
-km = KMeans(n_clusters = k)
+km = KMeans(n_clusters=k)
 km.fit(pca_train_data)
 print(pd.Series(km.labels_).value_counts())
