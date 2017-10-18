@@ -101,7 +101,8 @@ def plot_decision_regions(X, y, classifier, resolution=0.02):
 
 
 data = load_datasets()
-data = data.iloc[:25000, :]
+# data = data.iloc[50000:53000, :]
+data = data.iloc[50000:51000, :]
 
 # select top 2 features: srv_count, num_compromised
 # data = datasets[['srv_count', 'num_compromised', 'label']]
@@ -125,7 +126,7 @@ print("Step 2.1: Binarization for label")
 print(50 * '#')
 
 # get label, last column, convert it to binary classification label
-ori_labels = data.iloc[:,-1].values
+ori_labels = data.iloc[:, -1].values
 data.iloc[:, -1] = np.where(data.iloc[:, -1] == 'normal.', -1, 1)
 labels = data.iloc[:, -1].values
 # labels = last_column.copy()
@@ -312,7 +313,7 @@ print(50 * '#')
 print("Step 7.1: Re-training: LR")
 print(50 * '#')
 
-lr = LogisticRegression(C=0.1, random_state=1)
+lr = LogisticRegression()
 lr.fit(pca_train_data, train_labels)
 
 plot_decision_regions(pca_train_data, train_labels, classifier=lr)
@@ -344,7 +345,7 @@ print(50 * '#')
 print("Step 7.3: Re-training: SVC")
 print(50 * '#')
 
-svm = SVC(kernel='rbf', random_state=1, gamma=0.10, C=0.1)
+svm = SVC(kernel='rbf', random_state=1, gamma=0.10, C=1000.0)
 svm.fit(pca_train_data, train_labels)
 
 plot_decision_regions(pca_train_data, train_labels, classifier=svm)
@@ -363,7 +364,7 @@ print(50 * '#')
 print("Step 8.1: Re-Prediction: LR")
 print(50 * '#')
 
-pca_pred_labels = lr.predict(pca_test_data)
+pca_pred_labels_lr = lr.predict(pca_test_data)
 
 print(50 * '#')
 print("Step 8.2: Re-Prediction: RF")
@@ -384,9 +385,9 @@ print(50 * '#')
 print(50 * '#')
 print("Step 9.1: Re-Evaluation for LR")
 print(50 * '#')
-print('Accuracy for LR: %.2f' % accuracy_score(test_labels, pca_pred_labels))
-print(classification_report(test_labels, pca_pred_labels))
-print(confusion_matrix(test_labels, pca_pred_labels))
+print('Accuracy for LR: %.2f' % accuracy_score(test_labels, pca_pred_labels_lr))
+print(classification_report(test_labels, pca_pred_labels_lr))
+print(confusion_matrix(test_labels, pca_pred_labels_lr))
 
 print(50 * '#')
 print("Step 9.2: Re-Evaluation for RF")
@@ -440,7 +441,7 @@ print(pd.Series(km.labels_).value_counts())
 label_names = list(map(
     lambda x: pd.Series([ori_labels[i] for i in range(len(km.labels_)) if km.labels_[i] == x]),
     range(k)))
-
-for i in range(k):
-    print("Cluster {} labels:".format(i))
-    print(label_names[i].value_counts())
+#
+# for i in range(k):
+#     print("Cluster {} labels:".format(i))
+#     print(label_names[i].value_counts())
